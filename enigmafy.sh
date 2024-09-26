@@ -80,7 +80,6 @@ if $decrypt; then
   fi
 
   printf "\n[1/$steps] Checking integrity..."
-  # password=$(gpg --decrypt --quiet $aes_key)
   ek_file=$(gpg --decrypt --quiet $aes_key)
   password=$(grep 'password:' <<< "$ek_file" | awk '{print $2}')
   original_hash=$(grep 'hash:' <<< "$ek_file" | awk '{print $2}')
