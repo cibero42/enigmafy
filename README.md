@@ -1,8 +1,19 @@
 # Enigmafy
-Enigmafy is a shell script which makes encrypting multiple archives an easy task. The script generates two files, ending in: .ek (enigmafy key) and .eea (enigmafy encrypted archive)
+Enigmafy is a shell script which makes encrypting multiple archives an easy task. The script generates two files, ending in: .ek (enigmafy key) and .eea (enigmafy encrypted archive).
+
+## How it works
+Under the hood, Enigmafy first compacts the desired archive or folder in a single file, with the .ec extension. Then, symmetrically encrypts it (AES256-CBC) using a pseudo-aleatory password, transforming it on a .eea archive. This password is then asymmetrically encrypted using GnuPG, along with .eea file's SHA512 hash.
+
+When decrypting, Enigmafy calculates SHA512 from the .eea file and only proceeds if it matches with the one stored on the .ek file.
+
+## Recommendations
+### GnuPG
+- If you aren't familiar to GnuPG, please refer to [Linux Babe's guide](https://www.linuxbabe.com/security/a-practical-guide-to-gpg-part-1-generate-your-keypair).
+- When creating an asymetrical key on GnuPG, prefer using Curve25519, or Curve448 if the file's content is classified (check out Soatok's blog [here](https://soatok.blog/2023/04/03/asymmetric-cryptographic-commitments/) and [here](https://soatok.blog/2022/05/19/guidance-for-choosing-an-elliptic-curve-signature-algorithm-in-2022/) to learn more about asymmetric encryption).
 
 ## Features
-- AES-256 encrypted archives, with pseudo-randomly generated password.
+- AES-256 encrypted archives.
+- [UNDER DEVELOPMENT] Add a note to the archive
 - [UNDER DEVELOPMENT] Upload archives to S3 services
 
 ## Installation
@@ -31,3 +42,10 @@ Run:
 ```
 enigmafy -h
 ```
+
+## FAQ
+### What's up with the file extensions?
+They exist since it's easier to type and you can "be sure" that these files are compatible this Enigmafy
+- .ek (enigmafy key) -> .gpg file with the symmetrical password, hash, and other variables.
+- .eea (enigmafy encrypted archive) -> .tag.gz.enc file which contains the actual payload.
+- .ec (enigmafy compressed) -> .tar.gz temporary file which is exists as a transition state between original and encrypted version.

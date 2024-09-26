@@ -1,3 +1,9 @@
+########################################
+# Enigmafy                             #
+# By cibero42                          #
+# https://github.com/cibero42/enigmafy #
+# MIT License                          #
+########################################
 #!/bin/bash
 
 # Help function
