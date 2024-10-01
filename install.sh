@@ -88,10 +88,10 @@ EOF
         if gpg --verify awscliv2.sig awscliv2.zip; then
             unzip awscliv2.zip
             ./aws/install
-            rm awscliv2.zip aws.key awscliv2.sig
+            rm -r awscliv2.zip aws.key awscliv2.sig aws/
         else
             echo "Signature verification failed. Aborting."
-            rm awscliv2.zip aws.key awscliv2.sig
+            rm -r awscliv2.zip aws.key awscliv2.sig aws/
             exit 1
         fi
     fi
