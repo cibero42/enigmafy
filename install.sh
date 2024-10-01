@@ -107,6 +107,7 @@ printf " OK"
 printf "\n[3/3] Verifying installation..."
 if which enigmafy > /dev/null 2>&1; then
     printf " OK"
+    echo "Enigmafy was successfully installed"
 else
     printf " FAILED"
     echo "The installation didn't succeed. Try rerunning the script."
