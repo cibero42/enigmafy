@@ -8,13 +8,14 @@
 
 # Help function
 usage() {
-  echo "Usage: enigmafy [-d gpg_key_file] [-e key_identity] [-h] [-k key_size] <directory_or_archive>"
+  echo "Usage: enigmafy [-d gpg_key_file] [-e key_identity] [-h] [-k key_size] [-n "note string"] <directory_or_archive>"
   echo
   echo "Options:"
   echo "-d: Specifies that the script should decrypt"
   echo "-e: Specifies that the script should encrypt"
   echo "-h: Shows this help message"
   echo "-k: Set AES key size (default: 64)"
+  echo "-n: String containing a note, which will be encrypted"
 }
 
 hello() {
@@ -37,8 +38,9 @@ pubkey=""
 aes_key=""
 aes_size=64
 decrypt=false
+note=""
 
-while getopts "hk:d:e:" opt; do
+while getopts "hk:d:e:n:" opt; do
   case $opt in
     d)
       decrypt=true
@@ -53,6 +55,9 @@ while getopts "hk:d:e:" opt; do
       ;;
     k)
       aes_size=$OPTARG
+      ;;
+    n)
+      note=$OPTARG
       ;;
     *)
       echo "Invalid option: $OPTARG"
@@ -90,6 +95,7 @@ if $decrypt; then
   ek_file=$(gpg --decrypt --quiet $aes_key)
   password=$(echo "$ek_file" | awk '/password:/ {print $2}')
   original_hash=$(echo "$ek_file" | awk '/hash:/ {print $2}')
+  note=$(echo "$ek_file" | awk -F 'note: ' '{print $2}')
   calculated_hash=$(sha512sum $archive | awk '{print $1}')
   if [ "$original_hash" != "$calculated_hash" ]; then
     printf "\033[31mFAILED\033[0m"
@@ -97,6 +103,10 @@ if $decrypt; then
     exit 1
   fi
   printf " OK"
+  if [ "$note" != "" ]; then
+    printf "\nThis file contains a note:\n"
+    echo $note
+  fi
 
   printf "\n[2/$steps] Decrypting..."
   openssl enc -d -aes-256-cbc -pbkdf2 -iter 50000 -in $archive -out "${archive%.eea}.ec" -k $password
@@ -144,6 +154,7 @@ else
   gpg --encrypt --recipient $pubkey --output "$archive.ek" <<EOF
 password: $password
 hash: $hash
+note: $note
 EOF
   printf " OK"
 
