@@ -42,6 +42,11 @@ It's also possible to set AES256 random password size, via **-k** option (the de
 enigmafy -e gpg@key.org -k 128 your_archive
 ```
 
+You can send the encrypted archive to a S3 bucket using **-u**. Use it combined to **-c** in order to point to a non-AWS bucket.
+```
+enigmafy -e gpg@key.org -u your/bucket/path -c your-custom.s3.com your_archive
+```
+
 ### Decryption
 To decrypt an archive:
 ```
