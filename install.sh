@@ -100,7 +100,7 @@ fi
 printf "\nDependencies installed"
 
 printf "\n[2/3] Installing the script..."
-mv program/enigmafy.sh /usr/local/bin/enigmafy
+cp program/enigmafy.sh /usr/local/bin/enigmafy
 chmod +x /usr/local/bin/enigmafy
 printf " OK"
 
