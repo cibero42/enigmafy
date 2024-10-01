@@ -16,7 +16,7 @@ When decrypting, Enigmafy calculates SHA512 from the .eea file and only proceeds
 ## Features
 - AES-256 encrypted archives.
 - Add a note to the encrypted archive, via **-n** option
-- [UNDER DEVELOPMENT] Upload archives to S3 services
+- Upload archives to S3 services
 
 ## Installation
 ### 1. Clone the repository

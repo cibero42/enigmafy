@@ -8,14 +8,16 @@
 
 # Help function
 usage() {
-  echo "Usage: enigmafy [-d gpg_key_file] [-e key_identity] [-h] [-k key_size] [-n "note string"] <directory_or_archive>"
+  echo "Usage: enigmafy [-h] [-d gpg_key_file] [-e key_identity] [-k key_size] [-n "note string"] [-u bucket/path] [-e custom.s3.endpoint] <directory_or_archive>"
   echo
   echo "Options:"
+  echo "-c: Use custom S3 endpoint"
   echo "-d: Specifies that the script should decrypt"
   echo "-e: Specifies that the script should encrypt"
   echo "-h: Shows this help message"
   echo "-k: Set AES key size (default: 64)"
   echo "-n: String containing a note, which will be encrypted"
+  echo "-u: Upload files to specified S3 path"
 }
 
 hello() {
@@ -39,9 +41,14 @@ aes_key=""
 aes_size=64
 decrypt=false
 note=""
+s3_endpoint=""
+s3_path=""
 
-while getopts "hk:d:e:n:" opt; do
+while getopts "c:d:e:hk:n:u:" opt; do
   case $opt in
+    c)
+      s3_endpoint=$OPTARG
+      ;;
     d)
       decrypt=true
       aes_key=$OPTARG
@@ -58,6 +65,9 @@ while getopts "hk:d:e:n:" opt; do
       ;;
     n)
       note=$OPTARG
+      ;;
+    u)
+      s3_path=$OPTARG
       ;;
     *)
       echo "Invalid option: $OPTARG"
@@ -79,6 +89,7 @@ archive=$1
 
 if $decrypt; then
   steps="4"
+
   hello
   if [ $# -lt 1 ]; then
     echo "Error: Unexpected arguments after the archive name."
@@ -123,7 +134,11 @@ if $decrypt; then
   exit 0
 
 else
-  steps="5"
+  if [ "$s3_path" = "" ]; then
+    steps="5"
+  else
+    steps="6"
+  fi
   hello
 
   if [ $# -lt 1 ]; then
@@ -156,6 +171,16 @@ password: $password
 hash: $hash
 note: $note
 EOF
+  printf " OK"
+
+  printf "\n[5/$steps] Uploading to S3..."
+  if [ "$s3_endpoint" = "" ]; then
+    aws s3 cp "${archive}.eea" "s3://{$s3_path}"
+    aws s3 cp "${archive}.ek" "s3://{$s3_path}"
+  else
+    aws s3 --endpoint $s3_endpoint cp "${archive}.eea" "s3://{$s3_path}"
+    aws s3 --endpoint $s3_endpoint cp "${archive}.ek" "s3://{$s3_path}"
+  fi
   printf " OK"
 
   printf "\n[$steps/$steps] Cleaning..."
