@@ -26,7 +26,7 @@ git clone https://github.com/cibero42/enigmafy.git
 ### 2. Installation
 The installation script requires root priviledges
 ```
-cd /enigmafy
+cd enigmafy/
 sudo ./install.sh
 ```
 
