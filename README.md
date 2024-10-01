@@ -19,7 +19,16 @@ When decrypting, Enigmafy calculates SHA512 from the .eea file and only proceeds
 - [UNDER DEVELOPMENT] Upload archives to S3 services
 
 ## Installation
-TODO
+### 1. Clone the repository
+```
+git clone https://github.com/cibero42/enigmafy.git
+```
+### 2. Installation
+The installation script requires root priviledges
+```
+cd /enigmafy
+sudo ./install.sh
+```
 
 ## Usage
 ### Encryption
