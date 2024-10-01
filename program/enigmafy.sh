@@ -193,7 +193,7 @@ EOF
     }
     aws s3 --endpoint $s3_endpoint cp "${archive}.ek" "s3://{$s3_path}" || {
       printf "\033[31mFAILED\033[0m"
-      printf "\nUnable to copy .ek file to S3. Exiting."
+      printf "\nUnable to copy .ek file to S3. Exiting.\n"
       exit 1
     }
   fi
