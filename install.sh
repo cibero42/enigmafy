@@ -83,10 +83,10 @@ BfWC9s/USgxchg==
 =ptgS
 -----END PGP PUBLIC KEY BLOCK-----
 EOF
-        gpg --import aws.key
-        curl -o awscliv2.sig https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip.sig
+        gpg --import --quiet aws.key
+        curl -s -o awscliv2.sig https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip.sig
         if gpg --verify awscliv2.sig awscliv2.zip; then
-            unzip awscliv2.zip
+            unzip -qq awscliv2.zip
             ./aws/install
             rm -r awscliv2.zip aws.key awscliv2.sig aws/
         else
