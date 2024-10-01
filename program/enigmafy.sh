@@ -69,7 +69,8 @@ if [ $# -lt 1 ]; then
   exit 1
 fi
 
-archive=${@: -1}
+shift $((OPTIND-1))
+archive=$1
 
 if $decrypt; then
   steps="4"
@@ -87,8 +88,8 @@ if $decrypt; then
 
   printf "\n[1/$steps] Checking integrity..."
   ek_file=$(gpg --decrypt --quiet $aes_key)
-  password=$(grep 'password:' <<< "$ek_file" | awk '{print $2}')
-  original_hash=$(grep 'hash:' <<< "$ek_file" | awk '{print $2}')
+  password=$(echo "$ek_file" | awk '/password:/ {print $2}')
+  original_hash=$(echo "$ek_file" | awk '/hash:/ {print $2}')
   calculated_hash=$(sha512sum $archive | awk '{print $1}')
   if [ "$original_hash" != "$calculated_hash" ]; then
     printf "\033[31mFAILED\033[0m"
