@@ -4,6 +4,8 @@ Enigmafy is a shell script which makes encrypting multiple archives an easy task
 ## How it works
 Under the hood, Enigmafy first compacts the desired archive or folder in a single file, with the .ec extension. Then, symmetrically encrypts it (AES256-CBC) using a pseudo-aleatory password, transforming it on a .eea archive. This password is then asymmetrically encrypted using GnuPG, along with .eea file's SHA512 hash.
 
+![Enigmafy flow](_MdContent/schema.png)
+
 When decrypting, Enigmafy calculates SHA512 from the .eea file and only proceeds if it matches with the one stored on the .ek file.
 
 ## Recommendations
