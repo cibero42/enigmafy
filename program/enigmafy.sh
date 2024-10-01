@@ -175,11 +175,27 @@ EOF
 
   printf "\n[5/$steps] Uploading to S3..."
   if [ "$s3_endpoint" = "" ]; then
-    aws s3 cp "${archive}.eea" "s3://{$s3_path}"
-    aws s3 cp "${archive}.ek" "s3://{$s3_path}"
+    aws s3 cp "${archive}.eea" "s3://{$s3_path}" || {
+      printf "\033[31mFAILED\033[0m"
+      printf "\nUnable to copy .eea file to S3. Exiting."
+      exit 1
+    }
+    aws s3 cp "${archive}.ek" "s3://{$s3_path}" || {
+      printf "\033[31mFAILED\033[0m"
+      printf "\nUnable to copy .ek file to S3. Exiting."
+      exit 1
+    }
   else
-    aws s3 --endpoint $s3_endpoint cp "${archive}.eea" "s3://{$s3_path}"
-    aws s3 --endpoint $s3_endpoint cp "${archive}.ek" "s3://{$s3_path}"
+    aws s3 --endpoint $s3_endpoint cp "${archive}.eea" "s3://{$s3_path}" || {
+      printf "\033[31mFAILED\033[0m"
+      printf "\nUnable to copy .eea file to S3. Exiting."
+      exit 1
+    }
+    aws s3 --endpoint $s3_endpoint cp "${archive}.ek" "s3://{$s3_path}" || {
+      printf "\033[31mFAILED\033[0m"
+      printf "\nUnable to copy .ek file to S3. Exiting."
+      exit 1
+    }
   fi
   printf " OK"
 
