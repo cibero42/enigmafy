@@ -8,15 +8,14 @@
 
 # Help function
 usage() {
-  echo "Usage: enigmafy [-h] [-d gpg_key_file] [-e key_identity] [-k key_size] [-n "note string"] [-u bucket/path] [-e custom.s3.endpoint] <directory_or_archive>"
+  echo "Usage: enigmafy [-h] [-c custom.s3.endpoint] [-d gpg_key_file] [-e key_identity] [-s path/to/ssh/key] [-u bucket/path]  <directory_or_archive>"
   echo
   echo "Options:"
   echo "-c: Use custom S3 endpoint"
   echo "-d: Specifies that the script should decrypt"
   echo "-e: Specifies that the script should encrypt"
   echo "-h: Shows this help message"
-  echo "-k: Set AES key size (default: 64)"
-  echo "-n: String containing a note, which will be encrypted"
+  echo "-s: Create hash and sign"
   echo "-u: Upload files to specified S3 path"
 }
 
@@ -37,21 +36,20 @@ hello() {
 }
 
 pubkey=""
-aes_key=""
-aes_size=64
+privkey=""
 decrypt=false
-note=""
 s3_endpoint=""
 s3_path=""
+sign=false
 
-while getopts "c:d:e:hk:n:u:" opt; do
+while getopts "c:d:e:hs:u:" opt; do
   case $opt in
     c)
       s3_endpoint=$OPTARG
       ;;
     d)
       decrypt=true
-      aes_key=$OPTARG
+      privkey=$OPTARG
       ;;
     e)
       pubkey=$OPTARG
@@ -60,11 +58,9 @@ while getopts "c:d:e:hk:n:u:" opt; do
       usage
       exit 0
       ;;
-    k)
-      aes_size=$OPTARG
-      ;;
-    n)
-      note=$OPTARG
+    s)
+      sign=true
+      sign_path=$OPTARG
       ;;
     u)
       s3_path=$OPTARG
@@ -88,7 +84,13 @@ shift $((OPTIND-1))
 archive=$1
 
 if $decrypt; then
-  steps="4"
+  total_steps=1
+  step=1
+
+  if $sign; then
+    total_steps=$((total_steps + 2))
+  fi
+
 
   hello
   if [ $# -lt 1 ]; then
@@ -102,42 +104,47 @@ if $decrypt; then
     exit 1
   fi
 
-  printf "\n[1/$steps] Checking integrity..."
-  ek_file=$(gpg --decrypt --quiet $aes_key)
-  password=$(echo "$ek_file" | awk '/password:/ {print $2}')
-  original_hash=$(echo "$ek_file" | awk '/hash:/ {print $2}')
-  note=$(echo "$ek_file" | awk -F 'note: ' '{print $2}')
-  calculated_hash=$(sha512sum $archive | awk '{print $1}')
-  if [ "$original_hash" != "$calculated_hash" ]; then
-    printf "\033[31mFAILED\033[0m"
-    printf "\n\033[1;31mHashes do not match. Aborting!\033[0m"
+  if [ ! -e "$privkey" ]; then
+    echo "The specified private key '$privkey' does not exist."
     exit 1
   fi
-  printf " OK"
-  if [ "$note" != "" ]; then
-    printf "\nThis file contains a note:\n"
-    echo $note
+
+  if $sign; then
+    printf "\n[$step/$total_steps] Verifying signature..."
+    if cat ${archive%.age}.sha512 | ssh-keygen -q -Y check-novalidate -f $sign_path -n file -s ${archive%.age}.sha512.sig; then
+      printf " OK"
+      step=$((step + 1))
+    else
+      printf "\033[31mFAILED\033[0m"
+      printf "\nUnable to verify signature. Exiting.\n"
+      exit 1
+    fi
+    printf "\n[$step/$total_steps] Verifying hash..."
+    if sha512sum --check --quiet ${archive%.age}.sha512; then
+      printf " OK\n"
+      step=$((step + 1))
+    else
+      printf "\033[31mFAILED\033[0m"
+      printf "\nUnable to verify hash. Exiting.\n"
+      exit 1
+    fi
   fi
 
-  printf "\n[2/$steps] Decrypting..."
-  openssl enc -d -aes-256-cbc -pbkdf2 -iter 50000 -in $archive -out "${archive%.eea}.ec" -k $password
-  printf " OK"
+  echo "[$step/$total_steps] Decrypting..."
+  age -d -i $privkey $archive | tar -xz
+  echo " OK"
 
-  printf "\n[3/$steps] Uncompressing..."
-  tar -xf "${archive%.eea}.ec"
-  printf " OK"
-
-  printf "\n[$steps/$steps] Cleaning..."
-  rm "${archive%.eea}.ec"
-  printf " OK"
   printf "\n\nBye!"
   exit 0
 
 else
-  if [ "$s3_path" = "" ]; then
-    steps="5"
-  else
-    steps="6"
+  total_steps=1
+  step=1
+  if $sign; then
+    total_steps=$((total_steps + 2))
+  fi
+  if [ "$s3_path" != "" ]; then
+    total_steps=$((total_steps + 1))
   fi
   hello
 
@@ -152,56 +159,56 @@ else
     exit 1
   fi
 
-  printf "\n[1/$steps] Compressing..."
-  tar -czf "${archive}.ec" "$archive"
-  printf " OK"
-
-  printf "\n[2/$steps] Generating symetrical password..."
-  password=$(pwgen -s $aes_size -c -n -y -1)
-  printf " OK"
-
-  printf "\n[3/$steps] Encrypting data..."
-  openssl enc -aes-256-cbc -pbkdf2 -iter 50000 -in "${archive}.ec" -out "${archive}.eea" -k $password
-  printf " OK"
-
-  printf "\n[4/$steps] Calculating SHA512 of encrypted archive..."
-  hash=$(sha512sum "${archive}.eea" | awk '{print $1}')
-  gpg --encrypt --recipient $pubkey --output "$archive.ek" <<EOF
-password: $password
-hash: $hash
-note: $note
-EOF
-  printf " OK"
-
-  printf "\n[5/$steps] Uploading to S3..."
-  if [ "$s3_endpoint" = "" ]; then
-    aws s3 cp "${archive}.eea" "s3://{$s3_path}" || {
-      printf "\033[31mFAILED\033[0m"
-      printf "\nUnable to copy .eea file to S3. Exiting."
-      exit 1
-    }
-    aws s3 cp "${archive}.ek" "s3://{$s3_path}" || {
-      printf "\033[31mFAILED\033[0m"
-      printf "\nUnable to copy .ek file to S3. Exiting."
-      exit 1
-    }
-  else
-    aws s3 --endpoint $s3_endpoint cp "${archive}.eea" "s3://{$s3_path}" || {
-      printf "\033[31mFAILED\033[0m"
-      printf "\nUnable to copy .eea file to S3. Exiting."
-      exit 1
-    }
-    aws s3 --endpoint $s3_endpoint cp "${archive}.ek" "s3://{$s3_path}" || {
-      printf "\033[31mFAILED\033[0m"
-      printf "\nUnable to copy .ek file to S3. Exiting.\n"
-      exit 1
-    }
+  if [ ! -e "$pubkey" ]; then
+    echo "The specified public key '$pubkey' does not exist."
+    exit 1
   fi
+
+  printf "\n[$step/$total_steps] Encrypting data..."
+  tar -czf - $archive | age --recipients-file $pubkey -o ${archive}.age
+  step=$((step + 1))
   printf " OK"
 
-  printf "\n[$steps/$steps] Cleaning..."
-  rm $archive.ec
-  printf " OK"
+  if $sign; then
+    printf "\n[$step/$total_steps] Generating Hash..."
+    sha512sum ${archive}.age > ${archive}.sha512
+    step=$((step + 1))
+    printf " OK"
+
+    printf "\n[3/$total_steps] Signing..."
+    ssh-keygen -Y sign -f $sign_path -n file ${archive}.sha512
+    step=$((step + 1))
+    printf " OK"
+  fi
+
+  if [ "$s3_path" != "" ]; then
+    printf "\n[$step/$total_steps] Uploading to S3..."
+    if [ "$s3_endpoint" = "" ]; then
+      aws s3 cp "${archive}.eea" "s3://{$s3_path}" || {
+        printf "\033[31mFAILED\033[0m"
+        printf "\nUnable to copy .eea file to S3. Exiting."
+        exit 1
+      }
+      aws s3 cp "${archive}.ek" "s3://{$s3_path}" || {
+        printf "\033[31mFAILED\033[0m"
+        printf "\nUnable to copy .ek file to S3. Exiting."
+        exit 1
+      }
+    else
+      aws s3 --endpoint $s3_endpoint cp "${archive}.eea" "s3://{$s3_path}" || {
+        printf "\033[31mFAILED\033[0m"
+        printf "\nUnable to copy .eea file to S3. Exiting."
+        exit 1
+      }
+      aws s3 --endpoint $s3_endpoint cp "${archive}.ek" "s3://{$s3_path}" || {
+        printf "\033[31mFAILED\033[0m"
+        printf "\nUnable to copy .ek file to S3. Exiting.\n"
+        exit 1
+      }
+    fi
+    printf " OK"
+  fi
+
   printf "\n\nBye!"
   exit 0
 fi
