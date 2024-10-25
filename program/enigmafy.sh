@@ -184,27 +184,41 @@ else
   if [ "$s3_path" != "" ]; then
     printf "\n[$step/$total_steps] Uploading to S3..."
     if [ "$s3_endpoint" = "" ]; then
-      aws s3 cp "${archive}.eea" "s3://{$s3_path}" || {
+      aws s3 cp "${archive}.age" "s3://{$s3_path}" || {
         printf "\033[31mFAILED\033[0m"
-        printf "\nUnable to copy .eea file to S3. Exiting."
+        printf "\nUnable to copy ${archive}.age file to S3. Exiting."
         exit 1
       }
-      aws s3 cp "${archive}.ek" "s3://{$s3_path}" || {
-        printf "\033[31mFAILED\033[0m"
-        printf "\nUnable to copy .ek file to S3. Exiting."
-        exit 1
-      }
+      if $sign; then
+        aws s3 cp "${archive}.sha512" "s3://{$s3_path}" || {
+          printf "\033[31mFAILED\033[0m"
+          printf "\nUnable to copy ${archive}.sha512 file to S3. Exiting."
+          exit 1
+        }
+        aws s3 cp "${archive}.sha512.sig" "s3://{$s3_path}" || {
+          printf "\033[31mFAILED\033[0m"
+          printf "\nUnable to copy ${archive}.sha512.sig file to S3. Exiting."
+          exit 1
+        }
+      fi
     else
-      aws s3 --endpoint $s3_endpoint cp "${archive}.eea" "s3://{$s3_path}" || {
+      aws s3 --endpoint $s3_endpoint cp "${archive}.age" "s3://{$s3_path}" || {
         printf "\033[31mFAILED\033[0m"
-        printf "\nUnable to copy .eea file to S3. Exiting."
+        printf "\nUnable to copy ${archive}.age file to S3. Exiting."
         exit 1
       }
-      aws s3 --endpoint $s3_endpoint cp "${archive}.ek" "s3://{$s3_path}" || {
-        printf "\033[31mFAILED\033[0m"
-        printf "\nUnable to copy .ek file to S3. Exiting.\n"
-        exit 1
-      }
+      if $sign; then
+        aws s3 --endpoint $s3_endpoint cp "${archive}.sha512" "s3://{$s3_path}" || {
+          printf "\033[31mFAILED\033[0m"
+          printf "\nUnable to copy ${archive}.sha512 file to S3. Exiting."
+          exit 1
+        }
+        aws s3 --endpoint $s3_endpoint cp "${archive}.sha512.sig" "s3://{$s3_path}" || {
+          printf "\033[31mFAILED\033[0m"
+          printf "\nUnable to copy ${archive}.sha512.sig file to S3. Exiting."
+          exit 1
+        }
+      fi
     fi
     printf " OK"
   fi
