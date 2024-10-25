@@ -38,7 +38,7 @@ To simply encrypt an archive:
 enigmafy -e receivers_public_keys your_archive
 ```
 
-It's also possible to calculate its hash and sign, via **-s** option
+It's also possible to calculate its hash and sign using a ssh key, via **-s** option
 ```
 enigmafy -e receivers_public_keys -s private_ssh_key your_archive
 ```
