@@ -9,7 +9,7 @@ RUN apt-get update && \
         rclone && \
     rm -rf /var/lib/apt/lists/*
 
-COPY ../program/enigmafy.sh /usr/local/bin/enigmafy
+COPY program/enigmafy.sh /usr/local/bin/enigmafy
 
 RUN chmod +x /usr/local/bin/enigmafy
 

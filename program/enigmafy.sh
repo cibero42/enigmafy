@@ -14,6 +14,7 @@ usage() {
   echo "-d: Specifies that the script should decrypt"
   echo "-e: Specifies that the script should encrypt"
   echo "-h: Shows this help message"
+  echo "-r: Remove encrypted files after upload"
   echo "-s: Create hash and sign"
   echo "-u: Upload files to specified S3 path"
 }
@@ -39,6 +40,7 @@ privkey=""
 decrypt=false
 s3_path=""
 sign=false
+remove_enc=false
 
 while getopts "c:d:e:hs:u:" opt; do
   case $opt in
@@ -55,6 +57,9 @@ while getopts "c:d:e:hs:u:" opt; do
     h)
       usage
       exit 0
+      ;;
+    r)
+      remove_enc=true
       ;;
     s)
       sign=true
@@ -186,18 +191,23 @@ else
       printf "\nUnable to copy ${archive}.age file to S3. Exiting."
       exit 1
     }
-    if $sign; then
-      rclone copy "${archive}.sha512" $s3_path || {
-        printf "\033[31mFAILED\033[0m"
-        printf "\nUnable to copy ${archive}.sha512 file to S3. Exiting."
-        exit 1
-      }
-      rclone copy "${archive}.sha512.sig" $s3_path || {
-        printf "\033[31mFAILED\033[0m"
-        printf "\nUnable to copy ${archive}.sha512.sig file to S3. Exiting."
-        exit 1
-      }
+    if $remove_enc; then
+      rm "${archive}.age"
     fi
+    if $sign; then
+      rclone copy "${archive}.age.sha512" $s3_path || {
+        printf "\033[31mFAILED\033[0m"
+        printf "\nUnable to copy ${archive}.age.sha512 file to S3. Exiting."
+        exit 1
+      }
+      rclone copy "${archive}.age.sha512.sig" $s3_path || {
+        printf "\033[31mFAILED\033[0m"
+        printf "\nUnable to copy ${archive}.age.sha512.sig file to S3. Exiting."
+        exit 1
+      }
+      if $remove_enc; then
+        rm "${archive}.age.sha512" "${archive}.age.sha512.sig"
+      fi
     fi
     printf " OK"
   fi
