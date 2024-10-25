@@ -33,10 +33,10 @@ fi
 printf "\n[1/3] Installing dependencies...\n"
 # PKG installable dependencies
 if command -v yum > /dev/null 2>&1; then
-    dnf -q -y install age gnupg unzip tar curl which rclone
+    dnf -q -y install age unzip tar which rclone
 elif command -v apt > /dev/null 2>&1; then
     apt -qq update
-    apt -qq -y install age gnupg unzip tar curl which rclone
+    apt -qq -y install age unzip tar which rclone
 else
     echo "No supported package manager found."
     exit 1
