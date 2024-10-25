@@ -8,10 +8,9 @@
 
 # Help function
 usage() {
-  echo "Usage: enigmafy [-h] [-c custom.s3.endpoint] [-d gpg_key_file] [-e key_identity] [-s path/to/ssh/key] [-u bucket/path]  <directory_or_archive>"
+  echo "Usage: enigmafy [-h] [-d gpg_key_file] [-e key_identity] [-s path/to/ssh/key] [-u remote:bucket/path]  <directory_or_archive>"
   echo
   echo "Options:"
-  echo "-c: Use custom S3 endpoint"
   echo "-d: Specifies that the script should decrypt"
   echo "-e: Specifies that the script should encrypt"
   echo "-h: Shows this help message"
@@ -38,7 +37,6 @@ hello() {
 pubkey=""
 privkey=""
 decrypt=false
-s3_endpoint=""
 s3_path=""
 sign=false
 
@@ -183,42 +181,23 @@ else
 
   if [ "$s3_path" != "" ]; then
     printf "\n[$step/$total_steps] Uploading to S3..."
-    if [ "$s3_endpoint" = "" ]; then
-      aws s3 cp "${archive}.age" "s3://{$s3_path}" || {
+    rclone copy "${archive}.age" $s3_path || {
+      printf "\033[31mFAILED\033[0m"
+      printf "\nUnable to copy ${archive}.age file to S3. Exiting."
+      exit 1
+    }
+    if $sign; then
+      rclone copy "${archive}.sha512" $s3_path || {
         printf "\033[31mFAILED\033[0m"
-        printf "\nUnable to copy ${archive}.age file to S3. Exiting."
+        printf "\nUnable to copy ${archive}.sha512 file to S3. Exiting."
         exit 1
       }
-      if $sign; then
-        aws s3 cp "${archive}.sha512" "s3://{$s3_path}" || {
-          printf "\033[31mFAILED\033[0m"
-          printf "\nUnable to copy ${archive}.sha512 file to S3. Exiting."
-          exit 1
-        }
-        aws s3 cp "${archive}.sha512.sig" "s3://{$s3_path}" || {
-          printf "\033[31mFAILED\033[0m"
-          printf "\nUnable to copy ${archive}.sha512.sig file to S3. Exiting."
-          exit 1
-        }
-      fi
-    else
-      aws s3 --endpoint $s3_endpoint cp "${archive}.age" "s3://{$s3_path}" || {
+      rclone copy "${archive}.sha512.sig" $s3_path || {
         printf "\033[31mFAILED\033[0m"
-        printf "\nUnable to copy ${archive}.age file to S3. Exiting."
+        printf "\nUnable to copy ${archive}.sha512.sig file to S3. Exiting."
         exit 1
       }
-      if $sign; then
-        aws s3 --endpoint $s3_endpoint cp "${archive}.sha512" "s3://{$s3_path}" || {
-          printf "\033[31mFAILED\033[0m"
-          printf "\nUnable to copy ${archive}.sha512 file to S3. Exiting."
-          exit 1
-        }
-        aws s3 --endpoint $s3_endpoint cp "${archive}.sha512.sig" "s3://{$s3_path}" || {
-          printf "\033[31mFAILED\033[0m"
-          printf "\nUnable to copy ${archive}.sha512.sig file to S3. Exiting."
-          exit 1
-        }
-      fi
+    fi
     fi
     printf " OK"
   fi

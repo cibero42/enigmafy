@@ -43,9 +43,9 @@ It's also possible to calculate its hash and sign, via **-s** option
 enigmafy -e receivers_public_keys -s private_ssh_key your_archive
 ```
 
-You can send the encrypted archive to a S3 bucket using **-u**. Use it combined to **-c** in order to point to a non-AWS bucket.
+You can send the encrypted archive to a S3 bucket using **-u**. Before using, you need to configure your remote in rclone, by running **rclone config**.
 ```
-enigmafy -e receivers_public_keys -s private_ssh_key -u your/bucket/path -c your-custom.s3.com your_archive
+enigmafy -e receivers_public_keys -s private_ssh_key -u remote:your/bucket/path your_archive
 ```
 
 ### Decryption
