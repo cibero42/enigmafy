@@ -1,8 +1,8 @@
 # Enigmafy
-Enigmafy is a shell script which makes encrypting multiple archives and sending them to the cloud an easy task.
+Enigmafy is a shell script which makes encrypting multiple archives an easy task.
 
 ## How it works
-Under the hood, Enigmafy first compacts the desired archive or folder in a single file using gzip. Then, encrypts it using [AGE](https://github.com/FiloSottile/age). Optionally, the hash (SHA512) of the file is calculated and stored in a file which is signed with ssh keys.
+Under the hood, Enigmafy first compacts the desired archive or folder in a single file using gzip. Then, encrypts it using [AGE](https://github.com/FiloSottile/age). Optionally, the hash (SHA512) of the encrypted file is calculated and stored in a file which is signed with ssh keys.
 
 When decrypting, Enigmafy can validate the signature and verify the hash, to validate integrity and authentication.
 
@@ -14,10 +14,6 @@ To create a encrypted private key, run:
 ```
 age-keygen | age -p > backup.age
 ```
-
-## Features
-- AGE encrypted archives.
-- Upload archives to S3 services.
 
 ## Installation
 ### 1. Clone the repository

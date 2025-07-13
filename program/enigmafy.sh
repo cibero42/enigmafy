@@ -8,7 +8,7 @@
 
 # Help function
 usage() {
-  echo "Usage: enigmafy [-h] [-d gpg_key_file] [-e key_identity] [-s path/to/ssh/key] [-u remote:bucket/path]  <directory_or_archive>"
+  echo "Usage: enigmafy [-h] [-d gpg_key_file] [-e key_identity] [-s path/to/ssh/key]  <directory_or_archive>"
   echo
   echo "Options:"
   echo "-d: Specifies that the script should decrypt"
@@ -16,9 +16,9 @@ usage() {
   echo "-h: Shows this help message"
   echo "-r: Remove encrypted files after upload"
   echo "-s: Create hash and sign"
-  echo "-u: Upload files to specified S3 path"
 }
 
+# Hello banner
 hello() {
   printf "▓█████  ███▄    █  ██▓  ▄████  ███▄ ▄███▓ ▄▄▄        █████▒▓██   ██▓
 ▓█   ▀  ██ ▀█   █ ▓██▒ ██▒ ▀█▒▓██▒▀█▀ ██▒▒████▄    ▓██   ▒  ▒██  ██▒
@@ -38,15 +38,11 @@ hello() {
 pubkey=""
 privkey=""
 decrypt=false
-s3_path=""
 sign=false
-remove_enc=false
+sign_path=""
 
-while getopts "c:d:e:hs:u:" opt; do
+while getopts "d:e:hs:" opt; do
   case $opt in
-    c)
-      s3_endpoint=$OPTARG
-      ;;
     d)
       decrypt=true
       privkey=$OPTARG
@@ -58,15 +54,9 @@ while getopts "c:d:e:hs:u:" opt; do
       usage
       exit 0
       ;;
-    r)
-      remove_enc=true
-      ;;
     s)
       sign=true
       sign_path=$OPTARG
-      ;;
-    u)
-      s3_path=$OPTARG
       ;;
     *)
       echo "Invalid option: $OPTARG"
@@ -181,34 +171,6 @@ else
     printf "\n[3/$total_steps] Signing..."
     ssh-keygen -Y sign -f $sign_path -n file ${archive}.sha512
     step=$((step + 1))
-    printf " OK"
-  fi
-
-  if [ "$s3_path" != "" ]; then
-    printf "\n[$step/$total_steps] Uploading to S3..."
-    rclone copy "${archive}.age" $s3_path || {
-      printf "\033[31mFAILED\033[0m"
-      printf "\nUnable to copy ${archive}.age file to S3. Exiting."
-      exit 1
-    }
-    if $remove_enc; then
-      rm "${archive}.age"
-    fi
-    if $sign; then
-      rclone copy "${archive}.age.sha512" $s3_path || {
-        printf "\033[31mFAILED\033[0m"
-        printf "\nUnable to copy ${archive}.age.sha512 file to S3. Exiting."
-        exit 1
-      }
-      rclone copy "${archive}.age.sha512.sig" $s3_path || {
-        printf "\033[31mFAILED\033[0m"
-        printf "\nUnable to copy ${archive}.age.sha512.sig file to S3. Exiting."
-        exit 1
-      }
-      if $remove_enc; then
-        rm "${archive}.age.sha512" "${archive}.age.sha512.sig"
-      fi
-    fi
     printf " OK"
   fi
 
