@@ -60,11 +60,3 @@ Run:
 ```
 enigmafy -h
 ```
-
-## Docker
-To simply run Enigmafy using docker:
-```
-docker run -it cibero42/enigmafy
-```
-
-You can also check our [docker-compose.yml.example]() to run it with docker compose.
