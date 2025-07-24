@@ -41,6 +41,14 @@ func usage() {
 	fmt.Println("  -v: Shows Enigmafy version.")
 }
 
+func compress() {
+	fmt.Println("Compressing files...")
+}
+
+func decompress() {
+	fmt.Println("Decompressing files...")
+}
+
 func main() {
 	flag.BoolVar(&showHelp, "h", false, "Shows this help message.")
 	flag.BoolVar(&showVersion, "v", false, "Shows this help message.")
